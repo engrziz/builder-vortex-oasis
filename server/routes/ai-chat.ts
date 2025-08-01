@@ -29,7 +29,7 @@ const SYSTEM_PROMPT = `أنت مساعد ذكي متخصص في تعليم ال�
 - الادخار مثل زراعة البذور التي تنمو مع الوقت! 🌱
 - المال أداة مفيدة لتحقيق أحلامنا! ✨
 
-كن ودوداً ومشجعاً ومتحمساً لتعليم الأطفال!`;
+كن ��دوداً ومشجعاً ومتحمساً لتعليم الأطفال!`;
 
 export interface ChatRequest {
   message: string;
@@ -76,7 +76,8 @@ export const handleAIChat: RequestHandler = async (req, res) => {
     // Add current user message
     messages.push({ role: 'user', content: message });
 
-    const completion = await openai.chat.completions.create({
+    const openaiClient = getOpenAIClient();
+    const completion = await openaiClient.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages,
       max_tokens: 200,
