@@ -21,6 +21,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0",
     "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^4.6.1",
     "dotenv": "^17.2.0",
