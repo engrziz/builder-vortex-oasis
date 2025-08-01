@@ -43,18 +43,34 @@ export default function FinanceChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  const getBotResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase().trim();
-    
-    // Check for exact matches first
-    for (const [key, response] of Object.entries(predefinedResponses)) {
-      if (key !== 'default' && lowerMessage.includes(key)) {
-        return response;
+  const getAIResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          conversationHistory: conversationHistory
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data: ChatApiResponse = await response.json();
+
+      if (data.error) {
+        console.error('API Error:', data.error);
+      }
+
+      return data.response || 'عذراً، لم أتمكن من فهم سؤالك. هل يمكنك إعادة صياغته؟ 😊';
+    } catch (error) {
+      console.error('Error calling AI API:', error);
+      return 'عذراً، حدث خطأ تقني! 😅 هل يمكنك المحاولة مرة أخرى؟ أنا هنا لأعلمك عن الأموال والأسهم! 💰📚';
     }
-    
-    // If no match, return default response
-    return predefinedResponses.default;
   };
 
   const handleSendMessage = async () => {
