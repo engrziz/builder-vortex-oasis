@@ -1,16 +1,14 @@
 import { RequestHandler } from "express";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize OpenAI client only when needed to avoid build-time errors
-let openai: OpenAI | null = null;
+// Initialize Gemini client only when needed to avoid build-time errors
+let genAI: GoogleGenerativeAI | null = null;
 
-const getOpenAIClient = (): OpenAI => {
-  if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+const getGeminiClient = (): GoogleGenerativeAI => {
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   }
-  return openai;
+  return genAI;
 };
 
 const SYSTEM_PROMPT = `أنت مساعد ذكي متخصص في تعليم الأطفال عن الأموال والأسهم والاستثمار باللغة العربية. 
@@ -29,7 +27,7 @@ const SYSTEM_PROMPT = `أنت مساعد ذكي متخصص في تعليم ال�
 - الادخار مثل زراعة البذور التي تنمو مع الوقت! 🌱
 - المال أداة مفيدة لتحقيق أحلامنا! ✨
 
-كن ��دوداً ومشجعاً ومتحمساً لتعليم الأطفال!`;
+كن ودوداً ومشجعاً ومتحمساً لتعليم الأطفال!`;
 
 export interface ChatRequest {
   message: string;
@@ -45,9 +43,9 @@ export const handleAIChat: RequestHandler = async (req, res) => {
   try {
     const { message, conversationHistory = [] }: ChatRequest = req.body;
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ 
-        error: "مفتاح OpenAI غير مُعرّف في متغيرات البيئة",
+        error: "مفتاح Gemini API غير مُعرّف في متغيرات البيئة",
         response: "عذراً، لا يمكنني الإجابة الآن. يرجى المحاولة لاحقاً! 😊"
       });
     }
@@ -59,42 +57,38 @@ export const handleAIChat: RequestHandler = async (req, res) => {
       });
     }
 
-    // Build messages array for OpenAI
-    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: SYSTEM_PROMPT }
-    ];
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // Add conversation history (limit to last 10 messages to avoid token limits)
-    const recentHistory = conversationHistory.slice(-10);
+    // Build conversation context
+    let conversationContext = SYSTEM_PROMPT + "\n\n";
+    
+    // Add recent conversation history (limit to last 6 messages)
+    const recentHistory = conversationHistory.slice(-6);
     for (const msg of recentHistory) {
-      messages.push({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      });
+      if (msg.role === 'user') {
+        conversationContext += `المستخدم: ${msg.content}\n`;
+      } else {
+        conversationContext += `المساعد: ${msg.content}\n`;
+      }
+    }
+    
+    // Add current user message
+    conversationContext += `المستخدم: ${message}\nالمساعد: `;
+
+    const result = await model.generateContent(conversationContext);
+    const response = result.response;
+    const text = response.text();
+
+    if (!text) {
+      throw new Error("No response from Gemini");
     }
 
-    // Add current user message
-    messages.push({ role: 'user', content: message });
-
-    const openaiClient = getOpenAIClient();
-    const completion = await openaiClient.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages,
-      max_tokens: 200,
-      temperature: 0.7,
-      top_p: 1,
-      frequency_penalty: 0.5,
-      presence_penalty: 0.3,
-    });
-
-    const response = completion.choices[0]?.message?.content || 
-      'عذراً، لم أتمكن من فهم سؤالك. هل يمكنك إعادة صياغته؟ 😊';
-
-    const chatResponse: ChatResponse = { response };
+    const chatResponse: ChatResponse = { response: text };
     res.json(chatResponse);
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('Gemini API Error:', error);
     
     const fallbackResponse = "عذراً، حدث خطأ تقني! 😅 هل يمكنك المحاولة مرة أخرى؟ أنا هنا لأعلمك عن الأموال والأسهم! 💰📚";
     
