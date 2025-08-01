@@ -7,7 +7,7 @@ let openai: OpenAI | null = null;
 const getOpenAIClient = (): OpenAI => {
   if (!openai) {
     openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
     });
   }
   return openai;
