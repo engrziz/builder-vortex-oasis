@@ -32,6 +32,7 @@ export default function FinanceChatbot() {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
