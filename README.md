@@ -48,6 +48,7 @@ ANTHROPIC_API_KEY=your_claude_api_key_here
 ## النشر
 
 يمكن نشر المشروع على:
+
 - Netlify
 - Vercel
 - أي خدمة استضافة تدعم Node.js
